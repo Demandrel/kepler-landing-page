@@ -92,8 +92,8 @@
 
 		// Ensure minimum 200ms loading time
 		const elapsed = Date.now() - startTime;
-		if (elapsed < 200) {
-			await new Promise((resolve) => setTimeout(resolve, 200 - elapsed));
+		if (elapsed < 600) {
+			await new Promise((resolve) => setTimeout(resolve, 600 - elapsed));
 		}
 	}
 
@@ -160,7 +160,7 @@
 		<button
 			type="submit"
 			disabled={buttonState !== 'idle'}
-			class="relative h-[52px] overflow-hidden font-medium rounded-[14px] px-3 shrink-0
+			class="relative h-[52px] w-[140px] overflow-hidden font-medium rounded-[14px] px-3 shrink-0
            flex items-center gap-1 transition-colors duration-300 cursor-pointer"
 			style={`transform: scale(${$buttonScale});`}
 			onpointerenter={buttonState === 'idle' ? triggerBoop : undefined}
@@ -178,13 +178,13 @@
 				style={`transform: translateY(${$successSlide}%)`}
 			></div>
 			<div
-				class="absolute inset-0 bg-[#5839F0]"
+				class="absolute inset-0 bg-[#A125EE]"
 				style={`transform: translateY(${$successSlide - 100}%)`}
 			></div>
 
 			<!-- Content with slide animation -->
 			<div
-				class="relative flex items-center gap-1"
+				class="relative flex items-center justify-center gap-1 w-full"
 				style={`transform: translateY(${$successSlide}%); opacity: ${buttonState === 'success' ? '0' : '1'}`}
 			>
 				{#if buttonState === 'loading'}
@@ -203,7 +203,6 @@
 							d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
 						></path>
 					</svg>
-					<span>Loading...</span>
 				{:else}
 					<span>Join waitlist</span>
 					<span
@@ -236,7 +235,7 @@
 				style={`transform: translateY(${$successSlide - 100}%); opacity: ${buttonState === 'success' ? '1' : '0'}`}
 			>
 				<img src="/check-tick-circle.svg" alt="Success" width="20" height="20" />
-				<span>Subscrived!</span>
+				<span>Subscribed!</span>
 			</div>
 		</button>
 	</form>
