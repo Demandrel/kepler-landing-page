@@ -71,8 +71,8 @@
 		friction = 0.98;
 
 		constructor(xPoint: number, yPoint: number, color: string) {
-			// 2x smaller particles
-			this.w = this.h = (Math.random() * 6 + 1) / 2;
+			// 4x smaller particles (was /2, now /4)
+			this.w = this.h = (Math.random() * 6 + 1) / 4;
 			this.x = xPoint - this.w / 2;
 			this.y = yPoint - this.h / 2;
 			this.vx = (Math.random() - 0.5) * 10;
