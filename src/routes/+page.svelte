@@ -179,18 +179,18 @@
 
 		<button
 			type="submit"
-			disabled={buttonState !== 'idle'}
+			disabled={buttonState === 'loading'}
 			class="relative h-[52px] w-[140px] overflow-hidden font-medium rounded-[14px] px-3 shrink-0
            flex items-center gap-1 transition-colors duration-300 cursor-pointer"
 			style={`transform: scale(${$buttonScale});`}
-			onpointerenter={buttonState === 'idle' ? triggerBoop : undefined}
-			onfocus={buttonState === 'idle' ? handleFocus : undefined}
-			onpointerdown={buttonState === 'idle' ? handlePointerDown : undefined}
-			onpointerup={buttonState === 'idle' ? handlePointerUp : undefined}
-			onpointerleave={buttonState === 'idle' ? handlePointerLeave : undefined}
-			ontouchstart={buttonState === 'idle' ? handlePointerDown : undefined}
-			ontouchend={buttonState === 'idle' ? handlePointerUp : undefined}
-			ontouchcancel={buttonState === 'idle' ? handlePointerLeave : undefined}
+			onpointerenter={buttonState !== 'loading' ? triggerBoop : undefined}
+			onfocus={buttonState !== 'loading' ? handleFocus : undefined}
+			onpointerdown={buttonState !== 'loading' ? handlePointerDown : undefined}
+			onpointerup={buttonState !== 'loading' ? handlePointerUp : undefined}
+			onpointerleave={buttonState !== 'loading' ? handlePointerLeave : undefined}
+			ontouchstart={buttonState !== 'loading' ? handlePointerDown : undefined}
+			ontouchend={buttonState !== 'loading' ? handlePointerUp : undefined}
+			ontouchcancel={buttonState !== 'loading' ? handlePointerLeave : undefined}
 		>
 			<!-- Background color layers with slide animation -->
 			<div
