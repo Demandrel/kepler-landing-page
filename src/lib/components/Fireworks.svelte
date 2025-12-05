@@ -1,6 +1,25 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 
+	const SEED = 5;
+	// nice seed:  5, 6, 7; 10; 22, 100, 6486
+
+	// Seeded random number generator
+	class SeededRandom {
+		seed: number;
+
+		constructor(seed: number) {
+			this.seed = seed;
+		}
+
+		next() {
+			this.seed = (this.seed * 9301 + 49297) % 233280;
+			return this.seed / 233280;
+		}
+	}
+
+	let rng = new SeededRandom(SEED);
+
 	// Configuration
 	const CONFIG = {
 		spawnRate: 0.03,
@@ -28,7 +47,11 @@
 		// Longer duration (reduced decay speed)
 		haloDecay: { min: 0.0001, max: 0.00025 },
 		// Halo gravity (falls slowly)
-		haloGravity: 0.02
+		haloGravity: 0.02,
+
+		// Final bouquet (last 3 seconds)
+		finalBouquetMultiplier: 2.5, // 1.8
+		finalBouquetLoudChance: 0.7 // 60% instead of 30%
 	};
 
 	const PALETTES = [
@@ -57,6 +80,7 @@
 	let particles: Particle[] = $state([]);
 	let flashes: Flash[] = $state([]);
 	let animationId: number | null = null;
+	let startTime: number | null = null; // Track when fireworks started
 
 	// Audio
 	let explosionSounds: HTMLAudioElement[] = [];
@@ -83,11 +107,16 @@
 
 	function playRandomExplosion() {
 		if (explosionSounds.length === 0) return;
-		const randomIndex = Math.floor(Math.random() * explosionSounds.length);
+		const randomIndex = Math.floor(rng.next() * explosionSounds.length);
 		const sound = explosionSounds[randomIndex];
 
-		// 30% chance of 2x volume
-		const volumeMultiplier = Math.random() < 0.3 ? 2 : 1;
+		// Check if we're in final bouquet (last 3 seconds)
+		const elapsedTime = startTime ? (Date.now() - startTime) / 1000 : 0;
+		const isFinalBouquet = elapsedTime >= 7 && elapsedTime < 10; // Last 3 seconds of 10s
+
+		// 30% chance normally, 60% during final bouquet
+		const loudChance = isFinalBouquet ? CONFIG.finalBouquetLoudChance : 0.3;
+		const volumeMultiplier = rng.next() < loudChance ? 2 : 1;
 		const baseVolume = [EXPLOSION_VOLUME_1, EXPLOSION_VOLUME_2, EXPLOSION_VOLUME_3][randomIndex];
 		sound.volume = Math.min(1.0, baseVolume * volumeMultiplier);
 
@@ -97,15 +126,14 @@
 
 	function playRandomLaunch() {
 		if (launchSounds.length === 0) return;
-		const randomIndex = Math.floor(Math.random() * launchSounds.length);
+		const randomIndex = Math.floor(rng.next() * launchSounds.length);
 		const sound = launchSounds[randomIndex];
 		sound.currentTime = 0;
 		sound.play().catch((err) => console.log('Audio play failed:', err));
 	}
 
-	const random = (min: number, max: number) => Math.random() * (max - min) + min;
-	const randomColor = (palette: string[]) =>
-		palette[Math.floor(Math.random() * palette.length)];
+	const random = (min: number, max: number) => rng.next() * (max - min) + min;
+	const randomColor = (palette: string[]) => palette[Math.floor(rng.next() * palette.length)];
 
 	class Flash {
 		x: number;
@@ -244,12 +272,12 @@
 			const centerExclusionStart = width * 0.3;
 			const centerExclusionEnd = width * 0.7;
 
-			if (Math.random() < 0.5) {
+			if (rng.next() < 0.5) {
 				// Left side (0% to 30%)
-				this.x = Math.random() * centerExclusionStart;
+				this.x = rng.next() * centerExclusionStart;
 			} else {
 				// Right side (70% to 100%)
-				this.x = Math.random() * (width - centerExclusionEnd) + centerExclusionEnd;
+				this.x = rng.next() * (width - centerExclusionEnd) + centerExclusionEnd;
 			}
 
 			this.y = height;
@@ -313,8 +341,25 @@
 		// Luminous drawing
 		ctx.globalCompositeOperation = 'lighter';
 
+		// Start timer when fireworks activate
+		if (active && startTime === null) {
+			startTime = Date.now();
+			rng = new SeededRandom(SEED); // Reset RNG for reproducibility
+		} else if (!active && startTime !== null) {
+			startTime = null; // Reset timer when deactivated
+		}
+
+		// Calculate if we're in final bouquet (last 3 seconds)
+		const elapsedTime = startTime ? (Date.now() - startTime) / 1000 : 0;
+		const isFinalBouquet = elapsedTime >= 7 && elapsedTime < 10;
+
+		// Adjust spawn rate for final bouquet
+		const currentSpawnRate = isFinalBouquet
+			? CONFIG.spawnRate * CONFIG.finalBouquetMultiplier
+			: CONFIG.spawnRate;
+
 		// Spawn rockets when active
-		if (active && random(0, 1) < CONFIG.spawnRate) {
+		if (active && random(0, 1) < currentSpawnRate) {
 			rockets.push(new Rocket());
 			playRandomLaunch();
 		}

@@ -265,7 +265,7 @@
 	src="/main.png"
 	alt="Kepler main illustration"
 	class="mt-12 max-w-[1200px] mx-auto mb-32
-border-solid border-[1px] border-[#242424] rounded-[20px]"
+border-solid border-[1px] border-[#242424] rounded-[20px] z-50"
 />
 
 <!-- Fireworks animation -->
