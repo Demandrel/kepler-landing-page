@@ -1,0 +1,73 @@
+@import 'tailwindcss';
+
+@font-face {
+	font-family: 'Wotfard';
+	src:
+		url('/Wotfard Roman Webfont/wotfard-thin-webfont.woff2') format('woff2'),
+		url('/Wotfard Roman Webfont/wotfard-thin-webfont.ttf') format('truetype');
+	font-weight: 100;
+	font-style: normal;
+}
+
+@font-face {
+	font-family: 'Wotfard';
+	src:
+		url('/Wotfard Roman Webfont/wotfard-extralight-webfont.woff2') format('woff2'),
+		url('/Wotfard Roman Webfont/wotfard-extralight-webfont.ttf') format('truetype');
+	font-weight: 200;
+	font-style: normal;
+}
+
+@font-face {
+	font-family: 'Wotfard';
+	src:
+		url('/Wotfard Roman Webfont/wotfard-light-webfont.woff2') format('woff2'),
+		url('/Wotfard Roman Webfont/wotfard-light-webfont.ttf') format('truetype');
+	font-weight: 300;
+	font-style: normal;
+}
+
+@font-face {
+	font-family: 'Wotfard';
+	src:
+		url('/Wotfard Roman Webfont/wotfard-regular-webfont.woff2') format('woff2'),
+		url('/Wotfard Roman Webfont/wotfard-regular-webfont.ttf') format('truetype');
+	font-weight: 400;
+	font-style: normal;
+}
+
+@font-face {
+	font-family: 'Wotfard';
+	src:
+		url('/Wotfard Roman Webfont/wotfard-medium-webfont.woff2') format('woff2'),
+		url('/Wotfard Roman Webfont/wotfard-medium-webfont.ttf') format('truetype');
+	font-weight: 500;
+	font-style: normal;
+}
+
+@font-face {
+	font-family: 'Wotfard';
+	src:
+		url('/Wotfard Roman Webfont/wotfard-semibold-webfont.woff2') format('woff2'),
+		url('/Wotfard Roman Webfont/wotfard-semibold-webfont.ttf') format('truetype');
+	font-weight: 600;
+	font-style: normal;
+}
+
+@font-face {
+	font-family: 'Wotfard';
+	src:
+		url('/Wotfard Roman Webfont/wotfard-bold-webfont.woff2') format('woff2'),
+		url('/Wotfard Roman Webfont/wotfard-bold-webfont.ttf') format('truetype');
+	font-weight: 700;
+	font-style: normal;
+}
+
+body {
+	font-family:
+		'Wotfard',
+		system-ui,
+		-apple-system,
+		sans-serif;
+	background-color: #080808;
+}
