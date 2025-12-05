@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { spring } from 'svelte/motion';
+	import Fireworks from '$lib/components/Fireworks.svelte';
 
 	// position en X du chevron (en pixels)
 	const chevronX = spring(0, {
@@ -76,6 +77,7 @@
 	type ButtonState = 'idle' | 'loading' | 'success';
 	let buttonState = $state<ButtonState>('idle');
 	let email = $state('');
+	let showFireworks = $state(false);
 
 	// Spring animation for success background
 	const successSlide = spring(0, {
@@ -97,8 +99,22 @@
 		}
 	}
 
+	function launchFireworks() {
+		showFireworks = true;
+		// Stop fireworks after 10 seconds
+		setTimeout(() => {
+			showFireworks = false;
+		}, 10000);
+	}
+
 	async function handleSubmit(e: Event) {
 		e.preventDefault();
+
+		// If already success, relaunch fireworks instead of resubmitting
+		if (buttonState === 'success') {
+			launchFireworks();
+			return;
+		}
 
 		if (buttonState !== 'idle') return;
 
@@ -108,6 +124,9 @@
 			await subscribeToWaitlist(email);
 			buttonState = 'success';
 			successSlide.set(100);
+
+			// Trigger fireworks immediately
+			launchFireworks();
 		} catch (error) {
 			console.error('Failed to subscribe:', error);
 			buttonState = 'idle';
@@ -119,7 +138,8 @@
 <img
 	src="/stars_bg.png"
 	alt="background stars"
-	class="absolute top-0 left-1/2 -translate-x-1/2 pointer-events-none"
+	class="absolute top-0 left-1/2 -translate-x-1/2 pointer-events-none transition-opacity duration-1000"
+	style={`opacity: ${buttonState === 'success' ? '0.5' : '1'}`}
 	aria-hidden="true"
 />
 
@@ -247,3 +267,6 @@
 	class="mt-12 max-w-[1200px] mx-auto mb-32
 border-solid border-[1px] border-[#242424] rounded-[20px]"
 />
+
+<!-- Fireworks animation -->
+<Fireworks bind:active={showFireworks} />
