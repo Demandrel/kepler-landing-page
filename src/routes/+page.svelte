@@ -92,8 +92,8 @@
 
 		// Ensure minimum 200ms loading time
 		const elapsed = Date.now() - startTime;
-		if (elapsed < 600) {
-			await new Promise((resolve) => setTimeout(resolve, 600 - elapsed));
+		if (elapsed < 800) {
+			await new Promise((resolve) => setTimeout(resolve, 800 - elapsed));
 		}
 	}
 
@@ -149,9 +149,9 @@
 		<input
 			type="email"
 			bind:value={email}
-			class="flex-1 text-white rounded-xl px-5 placeholder-[#646464] bg-[#212121]
+			class="flex-1 text-white rounded-xl px-5 placeholder-[#797979] bg-[#212121]
                    focus:outline-none"
-			placeholder="john.kepler@gmail.com"
+			placeholder="hanna@gmail.com"
 			autocomplete="off"
 			required
 			disabled={buttonState !== 'idle'}
@@ -231,7 +231,7 @@
 
 			<!-- Success state sliding from top -->
 			<div
-				class="absolute inset-0 flex items-center justify-center gap-2 text-white"
+				class="absolute inset-0 flex items-center justify-center gap-1 text-white"
 				style={`transform: translateY(${$successSlide - 100}%); opacity: ${buttonState === 'success' ? '1' : '0'}`}
 			>
 				<img src="/check-tick-circle.svg" alt="Success" width="20" height="20" />
