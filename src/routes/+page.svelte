@@ -60,8 +60,8 @@
 	}
 
 	// Audio pour le bouton
-	const clickDownVolume = 0.25; // volume pour click_1 (0.0 à 1.0)
-	const clickUpVolume = 0.25; // volume pour click_2 (0.0 à 1.0)
+	const clickDownVolume = 0.15; // volume pour click_1 (0.0 à 1.0)
+	const clickUpVolume = 0.15; // volume pour click_2 (0.0 à 1.0)
 
 	let clickDownSound: HTMLAudioElement;
 	let clickUpSound: HTMLAudioElement;
@@ -70,6 +70,48 @@
 		clickDownSound.volume = clickDownVolume;
 		clickUpSound = new Audio('/click_2.mp3');
 		clickUpSound.volume = clickUpVolume;
+	}
+
+	// Form submission state
+	type ButtonState = 'idle' | 'loading' | 'success';
+	let buttonState = $state<ButtonState>('idle');
+	let email = $state('');
+
+	// Spring animation for success background
+	const successSlide = spring(0, {
+		stiffness: 0.15,
+		damping: 0.6
+	});
+
+	// Fake API call to simulate waitlist subscription
+	async function subscribeToWaitlist(email: string): Promise<void> {
+		const startTime = Date.now();
+
+		// Simulate API call (will replace with real Resend call later)
+		await new Promise((resolve) => setTimeout(resolve, 100));
+
+		// Ensure minimum 200ms loading time
+		const elapsed = Date.now() - startTime;
+		if (elapsed < 200) {
+			await new Promise((resolve) => setTimeout(resolve, 200 - elapsed));
+		}
+	}
+
+	async function handleSubmit(e: Event) {
+		e.preventDefault();
+
+		if (buttonState !== 'idle') return;
+
+		buttonState = 'loading';
+
+		try {
+			await subscribeToWaitlist(email);
+			buttonState = 'success';
+			successSlide.set(100);
+		} catch (error) {
+			console.error('Failed to subscribe:', error);
+			buttonState = 'idle';
+		}
 	}
 </script>
 
@@ -103,49 +145,99 @@
 	class="flex bg-[#212121] max-w-[420px] h-[60px] rounded-2xl mx-auto mt-32 items-center
            focus-within:ring-2 focus-within:ring-[#414141] focus-within:ring-offset-2 focus-within:ring-offset-black"
 >
-	<form class="flex w-full items-center pr-1">
+	<form class="flex w-full items-center pr-1" onsubmit={handleSubmit}>
 		<input
 			type="email"
+			bind:value={email}
 			class="flex-1 text-white rounded-xl px-5 placeholder-[#646464] bg-[#212121]
                    focus:outline-none"
 			placeholder="john.kepler@gmail.com"
 			autocomplete="off"
 			required
+			disabled={buttonState !== 'idle'}
 		/>
 
 		<button
-			type="button"
-			class="h-[52px] hover:bg-white bg-[#F0F0F0] cursor-pointer font-medium rounded-[14px] px-3 shrink-0
-           flex items-center gap-1"
+			type="submit"
+			disabled={buttonState !== 'idle'}
+			class="relative h-[52px] overflow-hidden font-medium rounded-[14px] px-3 shrink-0
+           flex items-center gap-1 transition-colors duration-300 cursor-pointer"
 			style={`transform: scale(${$buttonScale});`}
-			on:pointerenter={triggerBoop}
-			on:focus={handleFocus}
-			on:pointerdown={handlePointerDown}
-			on:pointerup={handlePointerUp}
-			on:pointerleave={handlePointerLeave}
-			on:touchstart={handlePointerDown}
-			on:touchend={handlePointerUp}
-			on:touchcancel={handlePointerLeave}
+			onpointerenter={buttonState === 'idle' ? triggerBoop : undefined}
+			onfocus={buttonState === 'idle' ? handleFocus : undefined}
+			onpointerdown={buttonState === 'idle' ? handlePointerDown : undefined}
+			onpointerup={buttonState === 'idle' ? handlePointerUp : undefined}
+			onpointerleave={buttonState === 'idle' ? handlePointerLeave : undefined}
+			ontouchstart={buttonState === 'idle' ? handlePointerDown : undefined}
+			ontouchend={buttonState === 'idle' ? handlePointerUp : undefined}
+			ontouchcancel={buttonState === 'idle' ? handlePointerLeave : undefined}
 		>
-			<span>Join waitlist</span>
+			<!-- Background color layers with slide animation -->
+			<div
+				class="absolute inset-0 bg-[#F0F0F0]"
+				style={`transform: translateY(${$successSlide}%)`}
+			></div>
+			<div
+				class="absolute inset-0 bg-[#5839F0]"
+				style={`transform: translateY(${$successSlide - 100}%)`}
+			></div>
 
-			<span class="inline-flex" style={`transform: translateX(${$chevronX}px);`} aria-hidden="true">
-				<svg
-					width="24"
-					height="24"
-					viewBox="0 0 24 24"
-					fill="none"
-					xmlns="http://www.w3.org/2000/svg"
-				>
-					<path
-						d="M10.1392 8C11.601 9.06206 12.9104 10.3071 14.0334 11.7021C14.1744 11.8774 14.1744 12.1226 14.0334 12.2979C12.9104 13.6929 11.601 14.9379 10.1392 16"
-						stroke="#111111"
-						stroke-width="2"
-						stroke-linecap="round"
-						stroke-linejoin="round"
-					/>
-				</svg>
-			</span>
+			<!-- Content with slide animation -->
+			<div
+				class="relative flex items-center gap-1"
+				style={`transform: translateY(${$successSlide}%); opacity: ${buttonState === 'success' ? '0' : '1'}`}
+			>
+				{#if buttonState === 'loading'}
+					<!-- Loading spinner -->
+					<svg
+						class="animate-spin h-5 w-5 text-black"
+						xmlns="http://www.w3.org/2000/svg"
+						fill="none"
+						viewBox="0 0 24 24"
+					>
+						<circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"
+						></circle>
+						<path
+							class="opacity-75"
+							fill="currentColor"
+							d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+						></path>
+					</svg>
+					<span>Loading...</span>
+				{:else}
+					<span>Join waitlist</span>
+					<span
+						class="inline-flex"
+						style={`transform: translateX(${$chevronX}px);`}
+						aria-hidden="true"
+					>
+						<svg
+							width="24"
+							height="24"
+							viewBox="0 0 24 24"
+							fill="none"
+							xmlns="http://www.w3.org/2000/svg"
+						>
+							<path
+								d="M10.1392 8C11.601 9.06206 12.9104 10.3071 14.0334 11.7021C14.1744 11.8774 14.1744 12.1226 14.0334 12.2979C12.9104 13.6929 11.601 14.9379 10.1392 16"
+								stroke="#111111"
+								stroke-width="2"
+								stroke-linecap="round"
+								stroke-linejoin="round"
+							/>
+						</svg>
+					</span>
+				{/if}
+			</div>
+
+			<!-- Success state sliding from top -->
+			<div
+				class="absolute inset-0 flex items-center justify-center gap-2 text-white"
+				style={`transform: translateY(${$successSlide - 100}%); opacity: ${buttonState === 'success' ? '1' : '0'}`}
+			>
+				<img src="/check-tick-circle.svg" alt="Success" width="20" height="20" />
+				<span>Subscrived!</span>
+			</div>
 		</button>
 	</form>
 </div>
