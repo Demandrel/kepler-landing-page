@@ -51,7 +51,14 @@
 
 		// Final bouquet (last 3 seconds)
 		finalBouquetMultiplier: 2.5, // 1.8
-		finalBouquetLoudChance: 0.7 // 60% instead of 30%
+		finalBouquetLoudChance: 0.7, // 60% instead of 30%
+
+		// Smoke configuration
+		smokeColor: '20, 20, 20',
+		smokeLineOpacity: 0.08,
+		smokeLineWidth: 4,
+		smokeFadeOut: 0.003,
+		minVelocityToSmoke: 0.5
 	};
 
 	const PALETTES = [
@@ -74,6 +81,8 @@
 
 	let canvas: HTMLCanvasElement;
 	let ctx: CanvasRenderingContext2D;
+	let smokeCanvas: HTMLCanvasElement;
+	let smokeCtx: CanvasRenderingContext2D;
 	let width = $state(0);
 	let height = $state(0);
 	let rockets: Rocket[] = $state([]);
@@ -135,6 +144,24 @@
 	const random = (min: number, max: number) => rng.next() * (max - min) + min;
 	const randomColor = (palette: string[]) => palette[Math.floor(rng.next() * palette.length)];
 
+	function drawSmokeLine(x1: number, y1: number, x2: number, y2: number) {
+		if (!smokeCtx) return;
+
+		// Stop drawing smoke after 30 seconds
+		const elapsedTime = startTime ? (Date.now() - startTime) / 1000 : 0;
+		if (elapsedTime > 30) return;
+
+		// Use source-over to stack gray color (won't saturate to white)
+		smokeCtx.globalCompositeOperation = 'source-over';
+		smokeCtx.beginPath();
+		smokeCtx.moveTo(x1, y1);
+		smokeCtx.lineTo(x2, y2);
+		smokeCtx.strokeStyle = `rgba(${CONFIG.smokeColor}, ${CONFIG.smokeLineOpacity})`;
+		smokeCtx.lineWidth = CONFIG.smokeLineWidth;
+		smokeCtx.lineCap = 'round';
+		smokeCtx.stroke();
+	}
+
 	class Flash {
 		x: number;
 		y: number;
@@ -181,12 +208,15 @@
 	class Particle {
 		x: number;
 		y: number;
+		prevX: number;
+		prevY: number;
 		vx: number;
 		vy: number;
 		color: string;
 		alpha: number;
 		decay: number;
 		type: 'cone' | 'standard';
+		size: number;
 
 		constructor(
 			x: number,
@@ -198,10 +228,13 @@
 		) {
 			this.x = x;
 			this.y = y;
+			this.prevX = x;
+			this.prevY = y;
 			this.type = type;
 			this.color = randomColor(palette);
 			this.alpha = 1;
 			this.decay = random(0.008, 0.015);
+			this.size = 2;
 
 			const power = random(CONFIG.explosionPower.min, CONFIG.explosionPower.max);
 
@@ -223,6 +256,9 @@
 		}
 
 		update() {
+			this.prevX = this.x;
+			this.prevY = this.y;
+
 			if (this.type === 'cone') {
 				// Cone physics: floating effect
 				this.vx *= CONFIG.coneFriction;
@@ -238,6 +274,12 @@
 			this.x += this.vx;
 			this.y += this.vy;
 			this.alpha -= this.decay;
+
+			// Draw smoke trail
+			const speed = Math.sqrt(this.vx * this.vx + this.vy * this.vy);
+			if (this.alpha > 0.1 && speed > CONFIG.minVelocityToSmoke) {
+				drawSmokeLine(this.prevX, this.prevY, this.x, this.y);
+			}
 		}
 
 		draw() {
@@ -245,7 +287,7 @@
 			ctx.globalAlpha = this.alpha;
 			ctx.fillStyle = this.color;
 			ctx.beginPath();
-			ctx.arc(this.x, this.y, 2, 0, Math.PI * 2);
+			ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
 			ctx.fill();
 			ctx.restore();
 		}
@@ -303,6 +345,9 @@
 			this.vy += CONFIG.gravity;
 			this.x += this.vx;
 			this.y += this.vy;
+
+			// Rocket also draws smoke trail
+			drawSmokeLine(this.prevX, this.prevY, this.x, this.y);
 		}
 
 		draw() {
@@ -330,10 +375,27 @@
 	function resize() {
 		width = canvas.width = window.innerWidth;
 		height = canvas.height = window.innerHeight;
+		// Resize both canvases
+		smokeCanvas.width = width;
+		smokeCanvas.height = height;
 	}
 
 	function loop() {
-		// Transparency with trail effect using destination-out
+		// 1. UPDATE SMOKE CANVAS (Fade out slowly)
+		if (smokeCtx) {
+			const elapsedTime = startTime ? (Date.now() - startTime) / 1000 : 0;
+
+			// After 30s, clear smoke completely
+			if (elapsedTime > 30 && startTime !== null) {
+				smokeCtx.clearRect(0, 0, width, height);
+			} else {
+				smokeCtx.globalCompositeOperation = 'destination-out';
+				smokeCtx.fillStyle = `rgba(0, 0, 0, ${CONFIG.smokeFadeOut})`;
+				smokeCtx.fillRect(0, 0, width, height);
+			}
+		}
+
+		// 2. UPDATE MAIN CANVAS (Fireworks)
 		ctx.globalCompositeOperation = 'destination-out';
 		ctx.fillStyle = `rgba(0, 0, 0, ${CONFIG.trailLength})`;
 		ctx.fillRect(0, 0, width, height);
@@ -402,6 +464,7 @@
 
 	onMount(() => {
 		ctx = canvas.getContext('2d')!;
+		smokeCtx = smokeCanvas.getContext('2d')!;
 		resize();
 
 		window.addEventListener('resize', resize);
@@ -416,6 +479,14 @@
 	});
 </script>
 
+<!-- Smoke canvas (below content, above background) -->
+<canvas
+	bind:this={smokeCanvas}
+	class="fixed inset-0 pointer-events-none z-[5]"
+	style="background: transparent;"
+></canvas>
+
+<!-- Main fireworks canvas (above everything) -->
 <canvas
 	bind:this={canvas}
 	class="fixed inset-0 pointer-events-none z-40"

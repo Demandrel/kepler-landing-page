@@ -138,12 +138,12 @@
 <img
 	src="/stars_bg.png"
 	alt="background stars"
-	class="absolute top-0 left-1/2 -translate-x-1/2 pointer-events-none transition-opacity duration-1000"
+	class="absolute top-0 left-1/2 -translate-x-1/2 pointer-events-none transition-opacity duration-1000 z-0"
 	style={`opacity: ${buttonState === 'success' ? '0.5' : '1'}`}
 	aria-hidden="true"
 />
 
-<div class="pt-40 flex flex-col gap-0">
+<div class="pt-40 flex flex-col gap-0 relative z-10">
 	<h1
 		class="text-[72px] leading-tight text-center font-bold bg-gradient-to-b from-white from-50% to-[#838383] bg-clip-text text-transparent"
 	>
@@ -156,14 +156,14 @@
 	</h1>
 </div>
 
-<h2 class="text-[#909090] font-[17px] mt-6 max-w-[600px] text-center mx-auto">
+<h2 class="text-[#909090] font-[17px] mt-6 max-w-[600px] text-center mx-auto relative z-10">
 	Your design inspiration is scattered between Mobbin, X, Dribbble, etc. Kepler is the new way to
 	collect, organize, search and share your design files.
 </h2>
 
 <div
 	class="flex bg-[#212121] max-w-[420px] h-[60px] rounded-2xl mx-auto mt-32 items-center
-           focus-within:ring-2 focus-within:ring-[#414141] focus-within:ring-offset-2 focus-within:ring-offset-black"
+           focus-within:ring-2 focus-within:ring-[#414141] focus-within:ring-offset-2 focus-within:ring-offset-black relative z-10"
 >
 	<form class="flex w-full items-center pr-1" onsubmit={handleSubmit}>
 		<input
@@ -215,7 +215,14 @@
 						fill="none"
 						viewBox="0 0 24 24"
 					>
-						<circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"
+						<circle
+							class="opacity-25"
+							cx="12"
+							cy="12"
+							r="10"
+							stroke="currentColor"
+							stroke-width="4"
+							stroke-linecap="round"
 						></circle>
 						<path
 							class="opacity-75"
@@ -264,8 +271,8 @@
 <img
 	src="/main.png"
 	alt="Kepler main illustration"
-	class="mt-12 max-w-[1200px] mx-auto mb-32
-border-solid border-[1px] border-[#242424] rounded-[20px] z-50"
+	class="mt-12 max-w-[1200px] mx-auto mb-32 relative z-50
+border-solid border-[1px] border-[#242424] rounded-[20px]"
 />
 
 <!-- Fireworks animation -->
