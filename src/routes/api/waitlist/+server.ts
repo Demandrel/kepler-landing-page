@@ -1,9 +1,7 @@
 import { json } from '@sveltejs/kit';
 import { Resend } from 'resend';
-import { RESEND_API_KEY, RESEND_AUDIENCE_ID } from '$env/static/private';
+import { env } from '$env/dynamic/private';
 import type { RequestHandler } from './$types';
-
-const resend = new Resend(RESEND_API_KEY);
 
 export const POST: RequestHandler = async ({ request }) => {
 	try {
@@ -20,11 +18,14 @@ export const POST: RequestHandler = async ({ request }) => {
 			return json({ error: 'Invalid email format' }, { status: 400 });
 		}
 
+		// Initialize Resend client with runtime environment variable
+		const resend = new Resend(env.RESEND_API_KEY);
+
 		// Add contact to Resend audience
-		console.log('Attempting to add contact:', email, 'to audience:', RESEND_AUDIENCE_ID);
+		console.log('Attempting to add contact:', email, 'to audience:', env.RESEND_AUDIENCE_ID);
 		const { data, error } = await resend.contacts.create({
 			email,
-			audienceId: RESEND_AUDIENCE_ID
+			audienceId: env.RESEND_AUDIENCE_ID!
 		});
 
 		if (error) {
