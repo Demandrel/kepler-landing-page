@@ -142,7 +142,7 @@
 <img
 	src="/stars_bg.png"
 	alt="background stars"
-	class="absolute top-0 left-1/2 -translate-x-1/2 pointer-events-none transition-opacity duration-1000 z-0 w-full md:w-auto"
+	class="absolute top-0 left-1/2 -translate-x-1/2 pointer-events-none transition-opacity duration-1000 z-0"
 	style={`opacity: ${buttonState === 'success' ? '0.5' : '1'}`}
 	aria-hidden="true"
 />
@@ -160,20 +160,22 @@
 	</h1>
 </div>
 
-<h2 class="text-[#909090] text-[15px] md:text-[17px] mt-4 md:mt-6 max-w-[90%] md:max-w-[600px] text-center mx-auto relative z-10 px-4">
+<h2
+	class="text-[#909090] text-[15px] md:text-[17px] mt-4 md:mt-6 max-w-[90%] md:max-w-[600px] text-center mx-auto relative z-10 px-4"
+>
 	Your design inspiration is scattered between Mobbin, X, Dribbble, etc. Kepler is the new way to
 	collect, organize, search and share your design files.
 </h2>
 
 <div
-	class="bg-[#212121] max-w-[90%] md:max-w-[420px] rounded-2xl mx-auto mt-16 md:mt-32
-           focus-within:ring-2 focus-within:ring-[#414141] focus-within:ring-offset-2 focus-within:ring-offset-black relative z-10 p-3 md:p-1"
+	class="flex bg-[#212121] max-w-[90%] md:max-w-[420px] h-[56px] md:h-[60px] rounded-2xl mx-auto mt-16 md:mt-32 items-center
+           focus-within:ring-2 focus-within:ring-[#414141] focus-within:ring-offset-2 focus-within:ring-offset-black relative z-10 px-1"
 >
-	<form class="flex flex-col md:flex-row w-full md:items-center gap-3 md:gap-0 md:pr-1" onsubmit={handleSubmit}>
+	<form class="flex w-full items-center pr-1" onsubmit={handleSubmit}>
 		<input
 			type="email"
 			bind:value={email}
-			class="w-full md:flex-1 text-white text-[16px] rounded-xl px-4 py-3 md:py-0 md:px-5 placeholder-[#797979] bg-[#212121]
+			class="flex-1 text-white text-[14px] md:text-[16px] rounded-xl px-3 md:px-5 placeholder-[#797979] bg-[#212121]
                    focus:outline-none"
 			placeholder="hanna@gmail.com"
 			autocomplete="off"
@@ -184,7 +186,7 @@
 		<button
 			type="submit"
 			disabled={buttonState === 'loading'}
-			class="h-[48px] md:h-[52px] w-full md:w-[140px] font-medium text-[16px] rounded-[14px] px-3 md:shrink-0
+			class="h-[48px] md:h-[52px] w-[120px] md:w-[140px] font-medium text-[14px] md:text-[16px] rounded-[14px] px-2 md:px-3 shrink-0
            flex items-center justify-center gap-1 transition-all duration-500 cursor-pointer"
 			style={`transform: scale(${$buttonScale}); background-color: ${buttonState === 'success' ? '#A125EE' : '#F0F0F0'}; color: ${buttonState === 'success' ? 'white' : 'black'};`}
 			onpointerenter={buttonState !== 'loading' ? triggerBoop : undefined}

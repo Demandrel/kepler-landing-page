@@ -12,6 +12,36 @@
 	let isMuted = $state(false);
 
 	// --- CONFIGURATION ---
+	// Default configuration values
+	const DEFAULT_CONFIG = {
+		spawnRate: 0.03,
+		coneChance: 0.3,
+		rocketSpeed: { min: -12, max: -17 },
+		gravity: 0.06,
+		rocketAirResistance: 0.995,
+		particleCount: { min: 60, max: 150 },
+		explosionPower: { min: 2, max: 6 },
+		friction: 0.96,
+		coneGravity: 0.005,
+		coneFriction: 0.92,
+		trailLength: 0.15,
+		haloSize: 200,
+		haloOpacity: 0.03,
+		haloDecay: { min: 0.0001, max: 0.00025 },
+		haloGravity: 0.02,
+		finalBouquetMultiplier: 3.0,
+		finalBouquetLoudChance: 0.7,
+		finalBouquetPowerMult: 1.9,
+		finalBouquetDensityMult: 1.9,
+		smokeEnabled: true,
+		smokeColor: '35, 35, 35',
+		smokeLineOpacity: 0.06,
+		smokeLineWidth: 4,
+		smokeFadeOut: 0.003,
+		smokeFadeOutFast: 0.02,
+		minVelocityToSmoke: 0.5
+	};
+
 	const CONFIG = $state({
 		spawnRate: 0.03,
 		coneChance: 0.3,
@@ -390,6 +420,7 @@
 	}
 
 	function restartShow() {
+		active = true;
 		rng = new SeededRandom(currentSeed);
 		startTime = Date.now();
 		rockets = [];
@@ -400,6 +431,49 @@
 			clearTimeout(smokeClearTimer);
 			smokeClearTimer = null;
 		}
+	}
+
+	function stopShow() {
+		active = false;
+		rockets = [];
+		particles = [];
+		flashes = [];
+		if (smokeCtx) smokeCtx.clearRect(0, 0, width, height);
+	}
+
+	function clearSmoke() {
+		if (smokeCtx) smokeCtx.clearRect(0, 0, width, height);
+	}
+
+	function resetSettings() {
+		CONFIG.spawnRate = DEFAULT_CONFIG.spawnRate;
+		CONFIG.coneChance = DEFAULT_CONFIG.coneChance;
+		CONFIG.rocketSpeed = { ...DEFAULT_CONFIG.rocketSpeed };
+		CONFIG.gravity = DEFAULT_CONFIG.gravity;
+		CONFIG.rocketAirResistance = DEFAULT_CONFIG.rocketAirResistance;
+		CONFIG.particleCount = { ...DEFAULT_CONFIG.particleCount };
+		CONFIG.explosionPower = { ...DEFAULT_CONFIG.explosionPower };
+		CONFIG.friction = DEFAULT_CONFIG.friction;
+		CONFIG.coneGravity = DEFAULT_CONFIG.coneGravity;
+		CONFIG.coneFriction = DEFAULT_CONFIG.coneFriction;
+		CONFIG.trailLength = DEFAULT_CONFIG.trailLength;
+		CONFIG.haloSize = DEFAULT_CONFIG.haloSize;
+		CONFIG.haloOpacity = DEFAULT_CONFIG.haloOpacity;
+		CONFIG.haloDecay = { ...DEFAULT_CONFIG.haloDecay };
+		CONFIG.haloGravity = DEFAULT_CONFIG.haloGravity;
+		CONFIG.finalBouquetMultiplier = DEFAULT_CONFIG.finalBouquetMultiplier;
+		CONFIG.finalBouquetLoudChance = DEFAULT_CONFIG.finalBouquetLoudChance;
+		CONFIG.finalBouquetPowerMult = DEFAULT_CONFIG.finalBouquetPowerMult;
+		CONFIG.finalBouquetDensityMult = DEFAULT_CONFIG.finalBouquetDensityMult;
+		CONFIG.smokeEnabled = DEFAULT_CONFIG.smokeEnabled;
+		CONFIG.smokeColor = DEFAULT_CONFIG.smokeColor;
+		CONFIG.smokeLineOpacity = DEFAULT_CONFIG.smokeLineOpacity;
+		CONFIG.smokeLineWidth = DEFAULT_CONFIG.smokeLineWidth;
+		CONFIG.smokeFadeOut = DEFAULT_CONFIG.smokeFadeOut;
+		CONFIG.smokeFadeOutFast = DEFAULT_CONFIG.smokeFadeOutFast;
+		CONFIG.minVelocityToSmoke = DEFAULT_CONFIG.minVelocityToSmoke;
+		currentSeed = 5;
+		activePalette = 'multicolor';
 	}
 
 	function manualLaunch() {
@@ -873,9 +947,32 @@
 			{/if}
 		</div>
 
+		<div class="flex row gap-2 w-[288px] mx-auto">
+			<button
+				onclick={stopShow}
+				class="w-[138px] h-[44px] cursor-pointer mx-auto bg-red-500 text-white tracking-widest hover:bg-red-600 transition-colors shrink-0 mb-3 rounded-[14px]"
+			>
+				Stop
+			</button>
+
+			<button
+				onclick={clearSmoke}
+				class="w-[138px] h-[44px] cursor-pointer mx-auto bg-gray-700 text-white text-[16px] tracking-widest hover:bg-gray-800 transition-colors shrink-0 mb-3 rounded-[14px]"
+			>
+				Clean Smoke
+			</button>
+		</div>
+
+		<button
+			onclick={resetSettings}
+			class="w-[288px] h-[44px] cursor-pointer mx-auto bg-white text-dark font-semibold tracking-widest hover:bg-orange-700 transition-colors shrink-0 mb-4 rounded-[14px]"
+		>
+			Reset Settings
+		</button>
+
 		<button
 			onclick={restartShow}
-			class="w-[288px] h-[44px] cursor-pointer mx-auto bg-[#A125EE] text-white font-semibold tracking-widest hover:bg-[#891fcb] transition-colors shrink-0 mb-4 rounded-full"
+			class="w-[288px] h-[44px] cursor-pointer mx-auto bg-[#A125EE] text-white font-semibold tracking-widest hover:bg-[#891fcb] transition-colors shrink-0 mb-3 rounded-[14px]"
 		>
 			Fire
 		</button>
