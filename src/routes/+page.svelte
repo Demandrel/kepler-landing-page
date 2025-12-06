@@ -79,12 +79,6 @@
 	let email = $state('');
 	let showFireworks = $state(false);
 
-	// Spring animation for success background
-	const successSlide = spring(0, {
-		stiffness: 0.15,
-		damping: 0.6
-	});
-
 	// Fake API call to simulate waitlist subscription
 	async function subscribeToWaitlist(email: string): Promise<void> {
 		const startTime = Date.now();
@@ -123,7 +117,6 @@
 		try {
 			await subscribeToWaitlist(email);
 			buttonState = 'success';
-			successSlide.set(100);
 
 			// Trigger fireworks immediately
 			launchFireworks();
@@ -180,9 +173,9 @@
 		<button
 			type="submit"
 			disabled={buttonState === 'loading'}
-			class="relative h-[52px] w-[140px] overflow-hidden font-medium rounded-[14px] px-3 shrink-0
-           flex items-center gap-1 transition-colors duration-300 cursor-pointer"
-			style={`transform: scale(${$buttonScale});`}
+			class="h-[52px] w-[140px] font-medium rounded-[14px] px-3 shrink-0
+           flex items-center justify-center gap-1 transition-all duration-500 cursor-pointer"
+			style={`transform: scale(${$buttonScale}); background-color: ${buttonState === 'success' ? '#A125EE' : '#F0F0F0'}; color: ${buttonState === 'success' ? 'white' : 'black'};`}
 			onpointerenter={buttonState !== 'loading' ? triggerBoop : undefined}
 			onfocus={buttonState !== 'loading' ? handleFocus : undefined}
 			onpointerdown={buttonState !== 'loading' ? handlePointerDown : undefined}
@@ -192,78 +185,56 @@
 			ontouchend={buttonState !== 'loading' ? handlePointerUp : undefined}
 			ontouchcancel={buttonState !== 'loading' ? handlePointerLeave : undefined}
 		>
-			<!-- Background color layers with slide animation -->
-			<div
-				class="absolute inset-0 bg-[#F0F0F0]"
-				style={`transform: translateY(${$successSlide}%)`}
-			></div>
-			<div
-				class="absolute inset-0 bg-[#A125EE]"
-				style={`transform: translateY(${$successSlide - 100}%)`}
-			></div>
-
-			<!-- Content with slide animation -->
-			<div
-				class="relative flex items-center justify-center gap-1 w-full"
-				style={`transform: translateY(${$successSlide}%); opacity: ${buttonState === 'success' ? '0' : '1'}`}
-			>
-				{#if buttonState === 'loading'}
-					<!-- Loading spinner -->
-					<svg
-						class="animate-spin h-5 w-5 text-black"
-						xmlns="http://www.w3.org/2000/svg"
-						fill="none"
-						viewBox="0 0 24 24"
-					>
-						<circle
-							class="opacity-25"
-							cx="12"
-							cy="12"
-							r="10"
-							stroke="currentColor"
-							stroke-width="4"
-							stroke-linecap="round"
-						></circle>
-						<path
-							class="opacity-75"
-							fill="currentColor"
-							d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-						></path>
-					</svg>
-				{:else}
-					<span>Join waitlist</span>
-					<span
-						class="inline-flex"
-						style={`transform: translateX(${$chevronX}px);`}
-						aria-hidden="true"
-					>
-						<svg
-							width="24"
-							height="24"
-							viewBox="0 0 24 24"
-							fill="none"
-							xmlns="http://www.w3.org/2000/svg"
-						>
-							<path
-								d="M10.1392 8C11.601 9.06206 12.9104 10.3071 14.0334 11.7021C14.1744 11.8774 14.1744 12.1226 14.0334 12.2979C12.9104 13.6929 11.601 14.9379 10.1392 16"
-								stroke="#111111"
-								stroke-width="2"
-								stroke-linecap="round"
-								stroke-linejoin="round"
-							/>
-						</svg>
-					</span>
-				{/if}
-			</div>
-
-			<!-- Success state sliding from top -->
-			<div
-				class="absolute inset-0 flex items-center justify-center gap-1 text-white"
-				style={`transform: translateY(${$successSlide - 100}%); opacity: ${buttonState === 'success' ? '1' : '0'}`}
-			>
+			{#if buttonState === 'success'}
 				<img src="/check-tick-circle.svg" alt="Success" width="20" height="20" />
 				<span>Subscribed!</span>
-			</div>
+			{:else if buttonState === 'loading'}
+				<!-- Loading spinner -->
+				<svg
+					class="animate-spin h-5 w-5 text-black"
+					xmlns="http://www.w3.org/2000/svg"
+					fill="none"
+					viewBox="0 0 24 24"
+				>
+					<circle
+						class="opacity-25"
+						cx="12"
+						cy="12"
+						r="10"
+						stroke="currentColor"
+						stroke-width="4"
+						stroke-linecap="round"
+					></circle>
+					<path
+						class="opacity-75"
+						fill="currentColor"
+						d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+					></path>
+				</svg>
+			{:else}
+				<span>Join waitlist</span>
+				<span
+					class="inline-flex"
+					style={`transform: translateX(${$chevronX}px);`}
+					aria-hidden="true"
+				>
+					<svg
+						width="24"
+						height="24"
+						viewBox="0 0 24 24"
+						fill="none"
+						xmlns="http://www.w3.org/2000/svg"
+					>
+						<path
+							d="M10.1392 8C11.601 9.06206 12.9104 10.3071 14.0334 11.7021C14.1744 11.8774 14.1744 12.1226 14.0334 12.2979C12.9104 13.6929 11.601 14.9379 10.1392 16"
+							stroke="#111111"
+							stroke-width="2"
+							stroke-linecap="round"
+							stroke-linejoin="round"
+						/>
+					</svg>
+				</span>
+			{/if}
 		</button>
 	</form>
 </div>

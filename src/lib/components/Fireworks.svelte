@@ -58,6 +58,7 @@
 		smokeLineOpacity: 0.08,
 		smokeLineWidth: 4,
 		smokeFadeOut: 0.003,
+		smokeFadeOutFast: 0.02, // Faster fade when fireworks end
 		minVelocityToSmoke: 0.5
 	};
 
@@ -90,7 +91,6 @@
 	let flashes: Flash[] = $state([]);
 	let animationId: number | null = null;
 	let startTime: number | null = null; // Track when fireworks started
-	let smokeClearTimer: number | null = null;
 
 	// Audio
 	let explosionSounds: HTMLAudioElement[] = [];
@@ -378,10 +378,11 @@
 	}
 
 	function loop() {
-		// 1. UPDATE SMOKE CANVAS (Fade out slowly)
+		// 1. UPDATE SMOKE CANVAS (Fade out slowly, faster when inactive)
 		if (smokeCtx) {
 			smokeCtx.globalCompositeOperation = 'destination-out';
-			smokeCtx.fillStyle = `rgba(0, 0, 0, ${CONFIG.smokeFadeOut})`;
+			const fadeSpeed = active ? CONFIG.smokeFadeOut : CONFIG.smokeFadeOutFast;
+			smokeCtx.fillStyle = `rgba(0, 0, 0, ${fadeSpeed})`;
 			smokeCtx.fillRect(0, 0, width, height);
 		}
 
@@ -397,25 +398,8 @@
 		if (active && startTime === null) {
 			startTime = Date.now();
 			rng = new SeededRandom(SEED); // Reset RNG for reproducibility
-
-			// Cancel any pending smoke clear timer
-			if (smokeClearTimer !== null) {
-				clearTimeout(smokeClearTimer);
-				smokeClearTimer = null;
-			}
 		} else if (!active && startTime !== null) {
 			startTime = null; // Reset timer when deactivated
-
-			// Set timer to clear smoke after 15 seconds
-			if (smokeClearTimer !== null) {
-				clearTimeout(smokeClearTimer);
-			}
-			smokeClearTimer = window.setTimeout(() => {
-				if (smokeCtx) {
-					smokeCtx.clearRect(0, 0, width, height);
-				}
-				smokeClearTimer = null;
-			}, 15000);
 		}
 
 		// Calculate if we're in final bouquet (last 3 seconds)
