@@ -242,7 +242,7 @@
 <img
 	src="/main.png"
 	alt="Kepler main illustration"
-	class="mt-12 max-w-[1200px] mx-auto mb-32 relative z-50
+	class="mt-12 max-w-[1200px] mx-auto mb-32 relative z-[30]
 border-solid border-[1px] border-[#242424] rounded-[20px]"
 />
 

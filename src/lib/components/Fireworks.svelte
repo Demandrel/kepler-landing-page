@@ -91,6 +91,7 @@
 	let flashes: Flash[] = $state([]);
 	let animationId: number | null = null;
 	let startTime: number | null = null; // Track when fireworks started
+	let smokeClearTimer: number | null = null; // Timer to clear smoke 10s after fireworks end
 
 	// Audio
 	let explosionSounds: HTMLAudioElement[] = [];
@@ -398,8 +399,23 @@
 		if (active && startTime === null) {
 			startTime = Date.now();
 			rng = new SeededRandom(SEED); // Reset RNG for reproducibility
+			// Cancel smoke clear timer if fireworks restart
+			if (smokeClearTimer !== null) {
+				clearTimeout(smokeClearTimer);
+				smokeClearTimer = null;
+			}
 		} else if (!active && startTime !== null) {
 			startTime = null; // Reset timer when deactivated
+			// Start timer to completely clear smoke after 10 seconds
+			if (smokeClearTimer !== null) {
+				clearTimeout(smokeClearTimer);
+			}
+			smokeClearTimer = window.setTimeout(() => {
+				if (smokeCtx) {
+					smokeCtx.clearRect(0, 0, width, height);
+				}
+				smokeClearTimer = null;
+			}, 10000);
 		}
 
 		// Calculate if we're in final bouquet (last 3 seconds)
