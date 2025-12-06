@@ -3,21 +3,24 @@
 
 	let { active = $bindable(false) } = $props();
 
-	// --- ETAT UI (Réactif pour l'interface) ---
+	// --- UI STATE ---
 	let isSettingsOpen = $state(false);
 	let activeTab = $state('tab-launch');
-	let currentSeed = $state(1);
+	let currentSeed = $state(5);
 	let hasBeenActivatedOnce = $state(false);
 	let activePalette = $state('multicolor');
 	let isMuted = $state(false);
 
-	// --- CONFIGURATION (Réactive pour les sliders) ---
+	// --- CONFIGURATION ---
 	const CONFIG = $state({
 		spawnRate: 0.03,
 		coneChance: 0.3,
 
-		// Physique Fusée
-		rocketSpeed: { min: -12, max: -18 },
+		// Physique
+		// Rocket speed is negative (moving up).
+		// min: -12 (lower height), max: -18 (higher height)
+		// We will control these via UI as positive values representing "Height"
+		rocketSpeed: { min: -12, max: -17 },
 		gravity: 0.06,
 		rocketAirResistance: 0.995,
 
@@ -38,22 +41,23 @@
 		haloDecay: { min: 0.0001, max: 0.00025 },
 		haloGravity: 0.02,
 
-		// Bouquet final
-		finalBouquetMultiplier: 2.5,
+		// Bouquet Final Boosters
+		finalBouquetMultiplier: 3.0,
 		finalBouquetLoudChance: 0.7,
+		finalBouquetPowerMult: 1.9,
+		finalBouquetDensityMult: 1.9,
 
-		// Fumée (Smoke Layer)
+		// Fumée
 		smokeEnabled: true,
-		smokeColor: '40, 40, 40',
-		smokeLineOpacity: 0.08,
+		smokeColor: '35, 35, 35',
+		smokeLineOpacity: 0.06,
 		smokeLineWidth: 4,
 		smokeFadeOut: 0.003,
 		smokeFadeOutFast: 0.02,
 		minVelocityToSmoke: 0.5
 	});
 
-	// --- ETAT MOTEUR (Non-Réactif pour la PERFORMANCE MAXIMALE) ---
-	// C'est ici que se jouait le lag. On utilise des variables JS brutes.
+	// --- MOTEUR (NON-REACTIF) ---
 	let canvas: HTMLCanvasElement;
 	let ctx: CanvasRenderingContext2D;
 	let smokeCanvas: HTMLCanvasElement;
@@ -62,7 +66,6 @@
 	let width = 0;
 	let height = 0;
 
-	// Tableaux bruts (Raw Arrays) - Pas de $state ici !
 	let rockets: Rocket[] = [];
 	let particles: Particle[] = [];
 	let flashes: Flash[] = [];
@@ -71,18 +74,19 @@
 	let startTime: number | null = null;
 	let smokeClearTimer: number | null = null;
 
-	// --- OUTILS MATHS ---
-	function mulberry32(a: number) {
-		return function () {
-			let t = (a += 0x6d2b79f5);
-			t = Math.imul(t ^ (t >>> 15), t | 1);
-			t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
-			return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
-		};
+	// --- OLD RNG ---
+	class SeededRandom {
+		seed: number;
+		constructor(seed: number) {
+			this.seed = seed;
+		}
+		next() {
+			this.seed = (this.seed * 9301 + 49297) % 233280;
+			return this.seed / 233280;
+		}
 	}
-
-	let rng = mulberry32(currentSeed);
-	const random = (min: number, max: number) => rng() * (max - min) + min;
+	let rng = new SeededRandom(currentSeed);
+	const random = (min: number, max: number) => rng.next() * (max - min) + min;
 
 	// --- PALETTES ---
 	const PALETTES_DICT: Record<string, string[][]> = {
@@ -122,13 +126,12 @@
 
 	function getRocketPalette() {
 		const pal = PALETTES_DICT[activePalette];
-		return pal[Math.floor(rng() * pal.length)];
+		return pal[Math.floor(rng.next() * pal.length)];
 	}
 
 	// --- AUDIO ---
 	const EXPLOSION_VOLUME_1 = 0.3;
 	const LAUNCH_VOLUME_1 = 0.3;
-
 	let explosionSounds: HTMLAudioElement[] = [];
 	let launchSounds: HTMLAudioElement[] = [];
 
@@ -147,22 +150,22 @@
 		launchSounds.forEach((s) => (s.volume = LAUNCH_VOLUME_1));
 	}
 
-	function playRandomExplosion() {
+	function playRandomExplosion(isLoud = false) {
 		if (isMuted || explosionSounds.length === 0) return;
-		const sound = explosionSounds[Math.floor(rng() * explosionSounds.length)];
+		const sound = explosionSounds[Math.floor(rng.next() * explosionSounds.length)];
+		sound.volume = isLoud ? Math.min(1, EXPLOSION_VOLUME_1 * 1.5) : EXPLOSION_VOLUME_1;
 		sound.currentTime = 0;
 		sound.play().catch(() => {});
 	}
 
 	function playRandomLaunch() {
 		if (isMuted || launchSounds.length === 0) return;
-		const sound = launchSounds[Math.floor(rng() * launchSounds.length)];
+		const sound = launchSounds[Math.floor(rng.next() * launchSounds.length)];
 		sound.currentTime = 0;
 		sound.play().catch(() => {});
 	}
 
-	// --- MOTEUR PHYSIQUE ---
-
+	// --- CLASSES ---
 	function drawSmokeLine(x1: number, y1: number, x2: number, y2: number) {
 		if (!CONFIG.smokeEnabled || !smokeCtx) return;
 		smokeCtx.globalCompositeOperation = 'source-over';
@@ -232,17 +235,19 @@
 			type: string,
 			rocketVx: number,
 			rocketVy: number,
-			paletteColors: string[]
+			paletteColors: string[],
+			powerMultiplier = 1
 		) {
 			this.x = x;
 			this.y = y;
 			this.prevX = x;
 			this.prevY = y;
 			this.type = type;
-			this.color = paletteColors[Math.floor(rng() * paletteColors.length)];
+			this.color = paletteColors[Math.floor(rng.next() * paletteColors.length)];
 			this.alpha = 1;
 			this.decay = random(0.008, 0.015);
-			const power = random(CONFIG.explosionPower.min, CONFIG.explosionPower.max);
+
+			const power = random(CONFIG.explosionPower.min, CONFIG.explosionPower.max) * powerMultiplier;
 			this.size = 2;
 
 			if (type === 'cone') {
@@ -306,18 +311,39 @@
 		paletteColors: string[];
 		mainColor: string;
 		triggerVelocity: number;
+		isFinalBouquet: boolean;
 
-		constructor() {
+		constructor(isFinalBouquet = false) {
 			const margin = width * 0.1;
-			this.x = random(margin, width - margin);
+
+			const sideRoll = rng.next();
+			if (sideRoll < 0.5) {
+				this.x = random(margin, width * 0.3); // Gauche
+			} else {
+				this.x = random(width * 0.7, width - margin); // Droite
+			}
+
 			this.y = height;
 			this.prevX = this.x;
 			this.prevY = this.y;
-			this.type = rng() < CONFIG.coneChance ? 'cone' : 'standard';
+			this.type = rng.next() < CONFIG.coneChance ? 'cone' : 'standard';
+			this.isFinalBouquet = isFinalBouquet;
+
 			const targetX = random(width * 0.1, width * 0.9);
-			this.vy = random(CONFIG.rocketSpeed.min, CONFIG.rocketSpeed.max);
+
+			if (this.isFinalBouquet) {
+				// Fixed high speed for finale
+				this.vy = random(-15, -12);
+			} else {
+				// Use the configured range
+				// Note: speeds are negative (upwards), so 'min' speed (height) corresponds to a smaller absolute value (closer to 0)
+				// We use the UI values (e.g. 10 to 25) directly from CONFIG logic
+				this.vy = random(CONFIG.rocketSpeed.min, CONFIG.rocketSpeed.max);
+			}
+
 			const timeToPeak = Math.abs(this.vy) / CONFIG.gravity;
 			this.vx = (targetX - this.x) / timeToPeak;
+
 			this.paletteColors = getRocketPalette();
 			this.mainColor = this.paletteColors[0];
 			this.triggerVelocity = random(0.5, 3.0);
@@ -354,12 +380,33 @@
 		}
 	}
 
+	// --- LOOP & LOGIC ---
 	function resize() {
 		if (!canvas || !smokeCanvas) return;
 		width = canvas.width = window.innerWidth;
 		height = canvas.height = window.innerHeight;
 		smokeCanvas.width = width;
 		smokeCanvas.height = height;
+	}
+
+	function restartShow() {
+		rng = new SeededRandom(currentSeed);
+		startTime = Date.now();
+		rockets = [];
+		particles = [];
+		flashes = [];
+		hasBeenActivatedOnce = true;
+		if (smokeClearTimer) {
+			clearTimeout(smokeClearTimer);
+			smokeClearTimer = null;
+		}
+	}
+
+	function manualLaunch() {
+		if (ctx) {
+			rockets.push(new Rocket(false));
+			playRandomLaunch();
+		}
 	}
 
 	function loop() {
@@ -378,7 +425,7 @@
 
 		if (active && startTime === null) {
 			startTime = Date.now();
-			rng = mulberry32(currentSeed);
+			rng = new SeededRandom(currentSeed);
 			hasBeenActivatedOnce = true;
 			if (smokeClearTimer) {
 				clearTimeout(smokeClearTimer);
@@ -394,29 +441,33 @@
 		}
 
 		const elapsedTime = startTime ? (Date.now() - startTime) / 1000 : 0;
-		const isFinalBouquet = elapsedTime >= 7 && elapsedTime < 10;
-		const currentSpawnRate = isFinalBouquet
+		const isFinalBouquetTime = elapsedTime >= 7 && elapsedTime < 10;
+
+		const currentSpawnRate = isFinalBouquetTime
 			? CONFIG.spawnRate * CONFIG.finalBouquetMultiplier
 			: CONFIG.spawnRate;
 
-		if (active && random(0, 1) < currentSpawnRate) {
-			rockets.push(new Rocket());
+		if ((active || (startTime !== null && elapsedTime < 10)) && random(0, 1) < currentSpawnRate) {
+			rockets.push(new Rocket(isFinalBouquetTime));
 			playRandomLaunch();
 		}
 
-		// Boucle inversée optimisée
 		for (let i = rockets.length - 1; i >= 0; i--) {
 			const r = rockets[i];
 			r.update();
 			r.draw();
 			if (r.shouldExplode()) {
 				flashes.push(new Flash(r.x, r.y, r.mainColor));
-				const count = random(CONFIG.particleCount.min, CONFIG.particleCount.max);
+
+				const densityMult = r.isFinalBouquet ? CONFIG.finalBouquetDensityMult : 1;
+				const powerMult = r.isFinalBouquet ? CONFIG.finalBouquetPowerMult : 1;
+				const count = random(CONFIG.particleCount.min, CONFIG.particleCount.max) * densityMult;
+
 				for (let j = 0; j < count; j++) {
-					particles.push(new Particle(r.x, r.y, r.type, r.vx, r.vy, r.paletteColors));
+					particles.push(new Particle(r.x, r.y, r.type, r.vx, r.vy, r.paletteColors, powerMult));
 				}
 				rockets.splice(i, 1);
-				playRandomExplosion();
+				playRandomExplosion(r.isFinalBouquet);
 			}
 		}
 
@@ -437,21 +488,49 @@
 		animationId = requestAnimationFrame(loop);
 	}
 
-	// UI Helpers
-	function hexToRgb(hex: string) {
-		const r = parseInt(hex.slice(1, 3), 16);
-		const g = parseInt(hex.slice(3, 5), 16);
-		const b = parseInt(hex.slice(5, 7), 16);
-		return `${r}, ${g}, ${b}`;
-	}
-
 	function setNewSeed(val: number) {
 		currentSeed = val;
-		rng = mulberry32(currentSeed);
+		rng = new SeededRandom(currentSeed);
 		rockets = [];
 		particles = [];
 		flashes = [];
 		if (smokeCtx) smokeCtx.clearRect(0, 0, width, height);
+	}
+
+	function randomSeed() {
+		const s = Math.floor(Math.random() * 10000);
+		currentSeed = s;
+		setNewSeed(s);
+	}
+
+	function switchTab(tab: string) {
+		activeTab = tab;
+	}
+	function setPalette(key: string) {
+		activePalette = key;
+	}
+
+	// UI Helpers for Height Range
+	// We map UI values (positive) to engine values (negative)
+	// Low height = low speed (e.g. -12), High height = high speed (e.g. -25)
+	// UI Slider 1 (Min Height) -> Controls CONFIG.rocketSpeed.min (e.g. -12)
+	// UI Slider 2 (Max Height) -> Controls CONFIG.rocketSpeed.max (e.g. -18)
+	// Note: In engine logic, "max" speed is usually the *faster* one (more negative),
+	// but random(min, max) doesn't care about order.
+	// Let's standardise: UI 10-30 => Engine -10 to -30.
+
+	function updateMinHeight(val: number) {
+		// UI Value (e.g. 12) -> Engine Value (-12)
+		// We want 'min' to be the lower bound of speed (closest to 0, so 'lowest height')
+		// And 'max' to be the upper bound (furthest from 0, 'highest height')
+		// Actually random() usually expects min < max. -18 < -12.
+		// So 'min' in random() should be the most negative (highest height).
+		// Let's simplify: we just update the range.
+		CONFIG.rocketSpeed.min = -Math.abs(val);
+	}
+
+	function updateMaxHeight(val: number) {
+		CONFIG.rocketSpeed.max = -Math.abs(val);
 	}
 
 	onMount(() => {
@@ -481,7 +560,6 @@
 			background: #444;
 			border-radius: 2px;
 		}
-
 		input[type='range'] {
 			-webkit-appearance: none;
 			width: 100%;
@@ -508,7 +586,6 @@
 			background: rgba(255, 255, 255, 0.2);
 			border-radius: 2px;
 		}
-
 		.palette-btn.active {
 			box-shadow:
 				0 0 0 2px black,
@@ -523,7 +600,6 @@
 	class="fixed inset-0 pointer-events-none z-[5]"
 	style="background: transparent;"
 ></canvas>
-
 <canvas
 	bind:this={canvas}
 	class="fixed inset-0 pointer-events-none z-40"
@@ -533,7 +609,7 @@
 {#if active || hasBeenActivatedOnce}
 	<button
 		onclick={() => (isSettingsOpen = !isSettingsOpen)}
-		class="fixed bottom-8 right-8 z-50 bg-white text-black px-5 py-3 rounded-full flex items-center gap-3 shadow-[0_0_20px_rgba(255,255,255,0.2)] hover:scale-105 transition-transform active:scale-95 font-bold tracking-wide text-sm group"
+		class="fixed bottom-8 cursor-pointer right-8 z-50 bg-white text-black px-5 py-3 rounded-full flex items-center gap-3 shadow-[0_0_20px_rgba(255,255,255,0.2)] hover:scale-105 transition-transform active:scale-95 font-bold tracking-wide text-sm group"
 	>
 		<svg
 			width="20"
@@ -580,7 +656,7 @@
 				fill="black"
 			/>
 		</svg>
-		PLAY WITH ME
+		Play with me
 	</button>
 
 	<div
@@ -591,12 +667,12 @@
 		class:scale-95={!isSettingsOpen}
 	>
 		<div class="px-5 py-4 border-b border-white/10 flex justify-between items-center bg-white/5">
-			<h2 class="text-sm font-bold tracking-wide text-white">Settings</h2>
+			<h2 class="text-sm font-bold tracking-wide text-white">Firework settings</h2>
 			<button
 				onclick={() => (isMuted = !isMuted)}
-				class="text-[10px] uppercase font-bold px-3 py-1.5 rounded-full transition-colors {isMuted
-					? 'bg-red-500/20 text-red-400'
-					: 'bg-white/10 hover:bg-white/20 text-gray-300 hover:text-white'}"
+				class="text-[10px] uppercase font-bold px-2 py-1 rounded cursor-pointer transition-colors {isMuted
+					? 'text-red-400'
+					: 'text-gray-400 hover:text-white'}"
 			>
 				{isMuted ? 'Sound OFF' : 'Sound ON'}
 			</button>
@@ -605,38 +681,29 @@
 		<div class="flex border-b border-white/10 text-[11px] font-bold uppercase tracking-wider">
 			<button
 				onclick={() => (activeTab = 'tab-launch')}
-				class="flex-1 py-3 text-center border-b-2 transition-colors {activeTab === 'tab-launch'
+				class="flex-1 py-3 text-center border-b-2 transition-colors cursor-pointer {activeTab ===
+				'tab-launch'
 					? 'text-white border-white bg-white/5'
 					: 'text-gray-500 border-transparent hover:text-gray-300 hover:bg-white/5'}">Launch</button
 			>
 			<button
 				onclick={() => (activeTab = 'tab-burst')}
-				class="flex-1 py-3 text-center border-b-2 transition-colors {activeTab === 'tab-burst'
+				class="flex-1 cursor-pointer py-3 text-center border-b-2 transition-colors {activeTab ===
+				'tab-burst'
 					? 'text-white border-white bg-white/5'
-					: 'text-gray-500 border-transparent hover:text-gray-300 hover:bg-white/5'}">Burst</button
-			>
-			<button
-				onclick={() => (activeTab = 'tab-smoke')}
-				class="flex-1 py-3 text-center border-b-2 transition-colors {activeTab === 'tab-smoke'
-					? 'text-white border-white bg-white/5'
-					: 'text-gray-500 border-transparent hover:text-gray-300 hover:bg-white/5'}">Smoke</button
-			>
-			<button
-				onclick={() => (activeTab = 'tab-halo')}
-				class="flex-1 py-3 text-center border-b-2 transition-colors {activeTab === 'tab-halo'
-					? 'text-white border-white bg-white/5'
-					: 'text-gray-500 border-transparent hover:text-gray-300 hover:bg-white/5'}">Halo</button
+					: 'text-gray-500 border-transparent hover:text-gray-300 hover:bg-white/5'}"
+				>Firework</button
 			>
 		</div>
 
-		<div class="p-6 overflow-y-auto scroller flex-1">
+		<div class="p-6 overflow-y-auto scroller flex-1 pb-20">
 			{#if activeTab === 'tab-launch'}
 				<div class="space-y-6">
 					<div class="space-y-2">
 						<label class="text-[10px] text-gray-400 uppercase font-bold tracking-widest"
 							>Simulation Seed</label
 						>
-						<div class="flex gap-2">
+						<div class="flex gap-2 mt-2">
 							<input
 								type="number"
 								bind:value={currentSeed}
@@ -644,11 +711,8 @@
 								class="bg-black/40 border border-white/10 rounded px-3 py-1.5 text-sm w-full focus:outline-none focus:border-white/40 transition-colors font-mono text-gray-300"
 							/>
 							<button
-								onclick={() => {
-									currentSeed = Math.floor(Math.random() * 10000);
-									setNewSeed(currentSeed);
-								}}
-								class="px-2 rounded hover:bg-white/10 transition-colors"
+								onclick={randomSeed}
+								class="px-2 rounded cursor-pointer hover:bg-white/10 transition-colors"
 							>
 								<svg
 									width="24"
@@ -673,7 +737,7 @@
 										currentSeed = seed;
 										setNewSeed(seed);
 									}}
-									class="text-[10px] bg-white/5 hover:bg-white/20 border border-white/5 px-2 py-1 rounded transition-colors"
+									class="text-[10px] cursor-pointer bg-white/5 text-gray-300 hover:bg-white/20 border border-white/5 px-2 py-1 rounded transition-colors"
 									>#{seed}</button
 								>
 							{/each}
@@ -688,6 +752,22 @@
 							</div>
 							<input type="range" min="0.01" max="0.20" step="0.01" bind:value={CONFIG.spawnRate} />
 						</div>
+
+						<div>
+							<div class="flex justify-between text-xs mb-2 font-medium">
+								<span class="text-gray-400">Min Height</span>
+								<span class="text-white">{Math.abs(CONFIG.rocketSpeed.min)}</span>
+							</div>
+							<input
+								type="range"
+								min="10"
+								max="17"
+								step="1"
+								value={Math.abs(CONFIG.rocketSpeed.min)}
+								oninput={(e) => updateMinHeight(parseFloat(e.currentTarget.value))}
+							/>
+						</div>
+
 						<div>
 							<div class="flex justify-between text-xs mb-2 font-medium">
 								<span class="text-gray-400">Max Height</span>
@@ -696,14 +776,10 @@
 							<input
 								type="range"
 								min="10"
-								max="30"
+								max="17"
 								step="1"
 								value={Math.abs(CONFIG.rocketSpeed.max)}
-								oninput={(e) => {
-									const v = parseFloat(e.currentTarget.value);
-									CONFIG.rocketSpeed.max = -v;
-									CONFIG.rocketSpeed.min = -(v - 6);
-								}}
+								oninput={(e) => updateMaxHeight(parseFloat(e.currentTarget.value))}
 							/>
 						</div>
 					</div>
@@ -716,40 +792,40 @@
 						<label class="text-[10px] text-gray-400 uppercase font-bold tracking-widest"
 							>Color Theme</label
 						>
-						<div class="grid grid-cols-6 gap-2">
+						<div class="grid grid-cols-6 gap-2 mt-3">
 							<button
 								onclick={() => (activePalette = 'multicolor')}
-								class="palette-btn w-8 h-8 rounded-full bg-gradient-to-tr from-pink-500 via-yellow-500 to-blue-500 transition-all"
+								class="palette-btn w-8 h-8 rounded-full bg-gradient-to-tr from-pink-500 via-yellow-500 to-blue-500 transition-all cursor-pointer"
 								class:active={activePalette === 'multicolor'}
 								title="Multicolor"
 							></button>
 							<button
 								onclick={() => (activePalette = 'classic')}
-								class="palette-btn w-8 h-8 rounded-full bg-gradient-to-tr from-yellow-300 to-white transition-all"
+								class="palette-btn w-8 h-8 rounded-full bg-gradient-to-tr from-yellow-300 to-white transition-all cursor-pointer"
 								class:active={activePalette === 'classic'}
 								title="Classic"
 							></button>
 							<button
 								onclick={() => (activePalette = 'neon')}
-								class="palette-btn w-8 h-8 rounded-full bg-gradient-to-tr from-purple-500 to-cyan-400 transition-all"
+								class="palette-btn w-8 h-8 rounded-full bg-gradient-to-tr from-purple-500 to-cyan-400 transition-all cursor-pointer"
 								class:active={activePalette === 'neon'}
 								title="Neon"
 							></button>
 							<button
 								onclick={() => (activePalette = 'warm')}
-								class="palette-btn w-8 h-8 rounded-full bg-gradient-to-tr from-red-600 to-orange-400 transition-all"
+								class="palette-btn w-8 h-8 rounded-full bg-gradient-to-tr from-red-600 to-orange-400 transition-all cursor-pointer"
 								class:active={activePalette === 'warm'}
 								title="Warm"
 							></button>
 							<button
 								onclick={() => (activePalette = 'cold')}
-								class="palette-btn w-8 h-8 rounded-full bg-gradient-to-tr from-blue-600 to-cyan-200 transition-all"
+								class="palette-btn w-8 h-8 rounded-full bg-gradient-to-tr from-blue-600 to-cyan-200 transition-all cursor-pointer"
 								class:active={activePalette === 'cold'}
 								title="Cold"
 							></button>
 							<button
 								onclick={() => (activePalette = 'matrix')}
-								class="palette-btn w-8 h-8 rounded-full bg-gradient-to-tr from-green-700 to-green-400 transition-all"
+								class="palette-btn w-8 h-8 rounded-full bg-gradient-to-tr from-green-700 to-green-400 transition-all cursor-pointer"
 								class:active={activePalette === 'matrix'}
 								title="Matrix"
 							></button>
@@ -795,79 +871,13 @@
 					</div>
 				</div>
 			{/if}
-
-			{#if activeTab === 'tab-smoke'}
-				<div class="space-y-6">
-					<div
-						class="flex items-center justify-between bg-white/5 p-3 rounded-lg border border-white/5"
-					>
-						<span class="text-xs text-gray-300 font-bold">Enable Smoke Layer</span>
-						<label class="relative inline-flex items-center cursor-pointer">
-							<input type="checkbox" bind:checked={CONFIG.smokeEnabled} class="sr-only peer" />
-							<div
-								class="w-9 h-5 bg-gray-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-green-500"
-							></div>
-						</label>
-					</div>
-					<div class="space-y-2">
-						<div class="flex justify-between text-xs mb-1">
-							<span class="text-gray-400">Smoke Color</span>
-						</div>
-						<div class="flex items-center gap-3">
-							<div class="relative w-8 h-8 rounded-full overflow-hidden border border-white/20">
-								<input
-									type="color"
-									value="#282828"
-									class="absolute -top-2 -left-2 w-12 h-12 cursor-pointer p-0 border-none"
-									oninput={(e) => (CONFIG.smokeColor = hexToRgb(e.currentTarget.value))}
-								/>
-							</div>
-							<span class="text-xs text-gray-500">Click circle to change</span>
-						</div>
-					</div>
-					<div class="space-y-5">
-						<div>
-							<div class="flex justify-between text-xs mb-2 font-medium">
-								<span class="text-gray-400">Visibility (Opacity)</span>
-								<span class="text-white">{CONFIG.smokeLineOpacity.toFixed(2)}</span>
-							</div>
-							<input
-								type="range"
-								min="0.01"
-								max="0.2"
-								step="0.01"
-								bind:value={CONFIG.smokeLineOpacity}
-							/>
-						</div>
-						<button
-							onclick={() => {
-								if (smokeCtx) smokeCtx.clearRect(0, 0, width, height);
-							}}
-							class="w-full py-2 bg-red-500/10 hover:bg-red-500/20 text-red-400 hover:text-red-300 border border-red-500/30 rounded text-xs font-bold uppercase tracking-wider transition-colors"
-							>Clear Smoke Canvas</button
-						>
-					</div>
-				</div>
-			{/if}
-
-			{#if activeTab === 'tab-halo'}
-				<div class="space-y-6">
-					<div>
-						<div class="flex justify-between text-xs mb-2 font-medium">
-							<span class="text-gray-400">Size</span>
-							<span class="text-white">{CONFIG.haloSize}px</span>
-						</div>
-						<input type="range" min="50" max="500" step="10" bind:value={CONFIG.haloSize} />
-					</div>
-					<div>
-						<div class="flex justify-between text-xs mb-2 font-medium">
-							<span class="text-gray-400">Intensity</span>
-							<span class="text-white">{CONFIG.haloOpacity.toFixed(2)}</span>
-						</div>
-						<input type="range" min="0" max="0.2" step="0.01" bind:value={CONFIG.haloOpacity} />
-					</div>
-				</div>
-			{/if}
 		</div>
+
+		<button
+			onclick={restartShow}
+			class="w-[288px] h-[44px] cursor-pointer mx-auto bg-[#A125EE] text-white font-semibold tracking-widest hover:bg-[#891fcb] transition-colors shrink-0 mb-4 rounded-full"
+		>
+			Fire
+		</button>
 	</div>
 {/if}
