@@ -79,14 +79,24 @@
 	let email = $state('');
 	let showFireworks = $state(false);
 
-	// Fake API call to simulate waitlist subscription
+	// Subscribe to waitlist via Resend API
 	async function subscribeToWaitlist(email: string): Promise<void> {
 		const startTime = Date.now();
 
-		// Simulate API call (will replace with real Resend call later)
-		await new Promise((resolve) => setTimeout(resolve, 100));
+		const response = await fetch('/api/waitlist', {
+			method: 'POST',
+			headers: {
+				'Content-Type': 'application/json'
+			},
+			body: JSON.stringify({ email })
+		});
 
-		// Ensure minimum 200ms loading time
+		if (!response.ok) {
+			const errorData = await response.json();
+			throw new Error(errorData.error || 'Failed to subscribe');
+		}
+
+		// Ensure minimum 800ms loading time for smooth UX
 		const elapsed = Date.now() - startTime;
 		if (elapsed < 800) {
 			await new Promise((resolve) => setTimeout(resolve, 800 - elapsed));

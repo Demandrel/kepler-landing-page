@@ -13,6 +13,9 @@
 		"format": "prettier --write .",
 		"lint": "prettier --check ."
 	},
+	"dependencies": {
+		"resend": "^4.0.1"
+	},
 	"devDependencies": {
 		"@sveltejs/adapter-auto": "^7.0.0",
 		"@sveltejs/kit": "^2.48.5",
