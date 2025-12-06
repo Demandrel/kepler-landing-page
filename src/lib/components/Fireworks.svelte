@@ -57,8 +57,10 @@
 		smokeColor: '20, 20, 20',
 		smokeLineOpacity: 0.08,
 		smokeLineWidth: 4,
-		smokeFadeOut: 0.003,
-		minVelocityToSmoke: 0.5
+		minVelocityToSmoke: 0.5,
+		// 🔧 OPTION: Set to true to keep smoke forever, false to fade after 15s
+		smokePersistent: false,
+		smokeLifetime: 15000 // 15 seconds in milliseconds
 	};
 
 	const PALETTES = [
@@ -88,6 +90,7 @@
 	let rockets: Rocket[] = $state([]);
 	let particles: Particle[] = $state([]);
 	let flashes: Flash[] = $state([]);
+	let smokeLines: SmokeTrail[] = $state([]);
 	let animationId: number | null = null;
 	let startTime: number | null = null; // Track when fireworks started
 
@@ -144,6 +147,56 @@
 	const random = (min: number, max: number) => rng.next() * (max - min) + min;
 	const randomColor = (palette: string[]) => palette[Math.floor(rng.next() * palette.length)];
 
+	class SmokeTrail {
+		x1: number;
+		y1: number;
+		x2: number;
+		y2: number;
+		createdAt: number;
+		alpha: number;
+
+		constructor(x1: number, y1: number, x2: number, y2: number) {
+			this.x1 = x1;
+			this.y1 = y1;
+			this.x2 = x2;
+			this.y2 = y2;
+			this.createdAt = Date.now();
+			this.alpha = CONFIG.smokeLineOpacity;
+		}
+
+		update() {
+			if (CONFIG.smokePersistent) return; // Don't fade if persistent mode
+
+			const age = Date.now() - this.createdAt;
+			const progress = age / CONFIG.smokeLifetime;
+
+			// Fade out over lifetime
+			if (progress < 1) {
+				this.alpha = CONFIG.smokeLineOpacity * (1 - progress);
+			} else {
+				this.alpha = 0;
+			}
+		}
+
+		draw() {
+			if (this.alpha <= 0.001) return;
+
+			smokeCtx.globalCompositeOperation = 'source-over';
+			smokeCtx.beginPath();
+			smokeCtx.moveTo(this.x1, this.y1);
+			smokeCtx.lineTo(this.x2, this.y2);
+			smokeCtx.strokeStyle = `rgba(${CONFIG.smokeColor}, ${this.alpha})`;
+			smokeCtx.lineWidth = CONFIG.smokeLineWidth;
+			smokeCtx.lineCap = 'round';
+			smokeCtx.stroke();
+		}
+
+		isDead() {
+			if (CONFIG.smokePersistent) return false;
+			return Date.now() - this.createdAt > CONFIG.smokeLifetime;
+		}
+	}
+
 	function drawSmokeLine(x1: number, y1: number, x2: number, y2: number) {
 		if (!smokeCtx) return;
 
@@ -151,15 +204,8 @@
 		const elapsedTime = startTime ? (Date.now() - startTime) / 1000 : 0;
 		if (elapsedTime > 30) return;
 
-		// Use source-over to stack gray color (won't saturate to white)
-		smokeCtx.globalCompositeOperation = 'source-over';
-		smokeCtx.beginPath();
-		smokeCtx.moveTo(x1, y1);
-		smokeCtx.lineTo(x2, y2);
-		smokeCtx.strokeStyle = `rgba(${CONFIG.smokeColor}, ${CONFIG.smokeLineOpacity})`;
-		smokeCtx.lineWidth = CONFIG.smokeLineWidth;
-		smokeCtx.lineCap = 'round';
-		smokeCtx.stroke();
+		// Add smoke line to array
+		smokeLines.push(new SmokeTrail(x1, y1, x2, y2));
 	}
 
 	class Flash {
@@ -381,17 +427,21 @@
 	}
 
 	function loop() {
-		// 1. UPDATE SMOKE CANVAS (Fade out slowly)
+		// 1. UPDATE SMOKE CANVAS
 		if (smokeCtx) {
-			const elapsedTime = startTime ? (Date.now() - startTime) / 1000 : 0;
+			// Clear canvas completely each frame
+			smokeCtx.clearRect(0, 0, width, height);
 
-			// After 30s, clear smoke completely
-			if (elapsedTime > 30 && startTime !== null) {
-				smokeCtx.clearRect(0, 0, width, height);
-			} else {
-				smokeCtx.globalCompositeOperation = 'destination-out';
-				smokeCtx.fillStyle = `rgba(0, 0, 0, ${CONFIG.smokeFadeOut})`;
-				smokeCtx.fillRect(0, 0, width, height);
+			// Update and draw all smoke trails
+			for (let i = smokeLines.length - 1; i >= 0; i--) {
+				const smoke = smokeLines[i];
+				smoke.update();
+				smoke.draw();
+
+				// Remove dead smoke trails
+				if (smoke.isDead()) {
+					smokeLines.splice(i, 1);
+				}
 			}
 		}
 
@@ -409,6 +459,10 @@
 			rng = new SeededRandom(SEED); // Reset RNG for reproducibility
 		} else if (!active && startTime !== null) {
 			startTime = null; // Reset timer when deactivated
+			// Clear smoke when fireworks end if not persistent
+			if (!CONFIG.smokePersistent && smokeLines.length > 0) {
+				smokeLines = [];
+			}
 		}
 
 		// Calculate if we're in final bouquet (last 3 seconds)
