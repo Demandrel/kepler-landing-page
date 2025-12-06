@@ -169,7 +169,7 @@
 
 <div
 	class="flex bg-[#212121] max-w-[90%] md:max-w-[420px] h-[56px] md:h-[60px] rounded-2xl mx-auto mt-16 md:mt-32 items-center
-           focus-within:ring-2 focus-within:ring-[#414141] focus-within:ring-offset-2 focus-within:ring-offset-black relative z-10 px-1"
+           focus-within:ring-2 focus-within:ring-[#414141] focus-within:ring-offset-2 focus-within:ring-offset-black relative z-10"
 >
 	<form class="flex w-full items-center pr-1" onsubmit={handleSubmit}>
 		<input
