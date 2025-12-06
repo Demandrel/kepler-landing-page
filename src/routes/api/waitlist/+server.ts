@@ -21,6 +21,7 @@ export const POST: RequestHandler = async ({ request }) => {
 		}
 
 		// Add contact to Resend audience
+		console.log('Attempting to add contact:', email, 'to audience:', RESEND_AUDIENCE_ID);
 		const { data, error } = await resend.contacts.create({
 			email,
 			audienceId: RESEND_AUDIENCE_ID
@@ -28,9 +29,13 @@ export const POST: RequestHandler = async ({ request }) => {
 
 		if (error) {
 			console.error('Resend API error:', error);
-			return json({ error: 'Failed to subscribe to waitlist' }, { status: 500 });
+			return json(
+				{ error: `Failed to subscribe to waitlist: ${JSON.stringify(error)}` },
+				{ status: 500 }
+			);
 		}
 
+		console.log('Successfully added contact:', data);
 		return json({ success: true, data }, { status: 200 });
 	} catch (error) {
 		console.error('Unexpected error:', error);
