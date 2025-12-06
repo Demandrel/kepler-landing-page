@@ -177,7 +177,7 @@
 			bind:value={email}
 			class="flex-1 text-white text-[14px] md:text-[16px] rounded-xl px-3 md:px-5 placeholder-[#797979] bg-[#212121]
                    focus:outline-none"
-			placeholder="hanna@gmail.com"
+			placeholder="mybestemail@gmail.com"
 			autocomplete="off"
 			required
 			disabled={buttonState !== 'idle'}
