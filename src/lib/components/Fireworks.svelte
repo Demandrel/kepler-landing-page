@@ -10,6 +10,7 @@
 	let hasBeenActivatedOnce = $state(false);
 	let activePalette = $state('multicolor');
 	let isMuted = $state(false);
+	let isMobile = $state(false);
 
 	// --- CONFIGURATION ---
 	// Default configuration values
@@ -361,14 +362,20 @@
 
 			const targetX = random(width * 0.1, width * 0.9);
 
+			// Adjust speeds for mobile (divide by 2 = less height)
+			const mobileMultiplier = isMobile ? 0.7 : 1;
+
 			if (this.isFinalBouquet) {
 				// Fixed high speed for finale
-				this.vy = random(-15, -12);
+				this.vy = random(-15 * mobileMultiplier, -12 * mobileMultiplier);
 			} else {
 				// Use the configured range
 				// Note: speeds are negative (upwards), so 'min' speed (height) corresponds to a smaller absolute value (closer to 0)
 				// We use the UI values (e.g. 10 to 25) directly from CONFIG logic
-				this.vy = random(CONFIG.rocketSpeed.min, CONFIG.rocketSpeed.max);
+				this.vy = random(
+					CONFIG.rocketSpeed.min * mobileMultiplier,
+					CONFIG.rocketSpeed.max * mobileMultiplier
+				);
 			}
 
 			const timeToPeak = Math.abs(this.vy) / CONFIG.gravity;
@@ -517,8 +524,13 @@
 		const elapsedTime = startTime ? (Date.now() - startTime) / 1000 : 0;
 		const isFinalBouquetTime = elapsedTime >= 7 && elapsedTime < 10;
 
+		// Reduce final bouquet by 2 on mobile
+		const bouquetMultiplier = isMobile
+			? CONFIG.finalBouquetMultiplier / 2.5
+			: CONFIG.finalBouquetMultiplier;
+
 		const currentSpawnRate = isFinalBouquetTime
-			? CONFIG.spawnRate * CONFIG.finalBouquetMultiplier
+			? CONFIG.spawnRate * bouquetMultiplier
 			: CONFIG.spawnRate;
 
 		if ((active || (startTime !== null && elapsedTime < 10)) && random(0, 1) < currentSpawnRate) {
@@ -611,11 +623,20 @@
 		ctx = canvas.getContext('2d')!;
 		smokeCtx = smokeCanvas.getContext('2d')!;
 		resize();
+
+		// Mobile detection
+		const checkMobile = () => {
+			isMobile = window.innerWidth < 768; // md breakpoint
+		};
+		checkMobile();
+
 		window.addEventListener('resize', resize);
+		window.addEventListener('resize', checkMobile);
 		loop();
 
 		return () => {
 			window.removeEventListener('resize', resize);
+			window.removeEventListener('resize', checkMobile);
 			if (animationId) cancelAnimationFrame(animationId);
 			if (smokeClearTimer) clearTimeout(smokeClearTimer);
 		};
@@ -683,7 +704,7 @@
 {#if active || hasBeenActivatedOnce}
 	<button
 		onclick={() => (isSettingsOpen = !isSettingsOpen)}
-		class="fixed bottom-8 cursor-pointer right-8 z-50 bg-white text-black px-5 py-3 rounded-full flex items-center gap-3 shadow-[0_0_20px_rgba(255,255,255,0.2)] hover:scale-105 transition-transform active:scale-95 font-bold tracking-wide text-sm group"
+		class="fixed bottom-8 cursor-pointer right-8 z-50 bg-white text-black px-5 py-3 rounded-full hidden md:flex items-center gap-3 shadow-[0_0_20px_rgba(255,255,255,0.2)] hover:scale-105 transition-transform active:scale-95 font-bold tracking-wide text-sm group"
 	>
 		<svg
 			width="20"
