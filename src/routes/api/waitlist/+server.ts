@@ -18,11 +18,32 @@ export const POST: RequestHandler = async ({ request }) => {
 			return json({ error: 'Invalid email format' }, { status: 400 });
 		}
 
-		// Initialize Resend client with runtime environment variable
+		// Initialize Resend client
 		const resend = new Resend(env.RESEND_API_KEY);
 
-		// Add contact to Resend audience
-		console.log('Attempting to add contact:', email, 'to audience:', env.RESEND_AUDIENCE_ID);
+		// Check if email already exists in the audience
+		try {
+			const { data: contacts } = await resend.contacts.list({
+				audienceId: env.RESEND_AUDIENCE_ID!
+			});
+
+			if (contacts) {
+				const existingContact = contacts.data.find((contact: any) => contact.email === email);
+				if (existingContact) {
+					console.log('Contact already exists:', email);
+					return json(
+						{ error: 'already-exists' },
+						{ status: 400 }
+					);
+				}
+			}
+		} catch (error) {
+			console.error('Error checking existing contacts:', error);
+			// Continue anyway - we'll handle duplicates later
+		}
+
+		// Add contact directly to Resend audience
+		console.log('Adding contact:', email, 'to audience:', env.RESEND_AUDIENCE_ID);
 		const { data, error } = await resend.contacts.create({
 			email,
 			audienceId: env.RESEND_AUDIENCE_ID!
@@ -31,13 +52,13 @@ export const POST: RequestHandler = async ({ request }) => {
 		if (error) {
 			console.error('Resend API error:', error);
 			return json(
-				{ error: `Failed to subscribe to waitlist: ${JSON.stringify(error)}` },
+				{ error: `Failed to add to waitlist: ${JSON.stringify(error)}` },
 				{ status: 500 }
 			);
 		}
 
 		console.log('Successfully added contact:', data);
-		return json({ success: true, data }, { status: 200 });
+		return json({ success: true, message: 'Added to waitlist successfully' }, { status: 200 });
 	} catch (error) {
 		console.error('Unexpected error:', error);
 		return json({ error: 'Internal server error' }, { status: 500 });

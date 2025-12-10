@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { spring } from 'svelte/motion';
 	import Fireworks from '$lib/components/Fireworks.svelte';
+	import { Toaster, toast } from 'svelte-sonner';
 
 	// position en X du chevron (en pixels)
 	const chevronX = spring(0, {
@@ -128,12 +129,21 @@
 			await subscribeToWaitlist(email);
 			buttonState = 'success';
 
-			// Trigger fireworks immediately
+			// Trigger fireworks for new signup
 			launchFireworks();
 		} catch (error) {
 			console.error('Failed to subscribe:', error);
-			alert(`Subscription failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
-			buttonState = 'idle';
+			const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+
+			// Handle different error cases
+			if (errorMessage.includes('already-exists')) {
+				buttonState = 'success';
+				toast.success("You're already on the waitlist! We'll notify you when we launch.");
+				launchFireworks();
+			} else {
+				toast.error(`Subscription failed: ${errorMessage}`);
+				buttonState = 'idle';
+			}
 		}
 	}
 </script>
@@ -253,11 +263,14 @@
 </div>
 
 <img
-	src="/main.png"
-	alt="Kepler main illustration"
+	src="/main2.png"
+	alt="Kepler app screen"
 	class="mt-8 md:mt-12 max-w-[90%] md:max-w-[1200px] mx-auto mb-16 md:mb-32 relative z-[30]
 border-solid border-[1px] border-[#242424] rounded-[12px] md:rounded-[20px] px-2 md:px-0"
 />
 
 <!-- Fireworks animation -->
 <Fireworks bind:active={showFireworks} />
+
+<!-- Toast notifications -->
+<Toaster theme="dark" position="bottom-center" />

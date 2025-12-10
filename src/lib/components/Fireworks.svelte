@@ -80,7 +80,7 @@
 
 		// Fumée
 		smokeEnabled: true,
-		smokeColor: '35, 35, 35',
+		smokeColor: '20, 20, 20',
 		smokeLineOpacity: 0.06,
 		smokeLineWidth: 4,
 		smokeFadeOut: 0.003,
