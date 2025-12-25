@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { spring } from 'svelte/motion';
+	import { onMount } from 'svelte';
 	import Fireworks from '$lib/components/Fireworks.svelte';
 	import { Toaster, toast } from 'svelte-sonner';
 
@@ -146,6 +147,12 @@
 			}
 		}
 	}
+
+	let visible = $state(false);
+
+	onMount(() => {
+		visible = true;
+	});
 </script>
 
 <!-- Background stars decoration -->
@@ -160,19 +167,37 @@
 <div class="pt-[60px] flex flex-col gap-0 relative z-10 px-4">
 	<img src="/logo.png" alt="App logo" class="w-[48px] mx-auto mb-[120px]" />
 	<h1
-		class="text-[36px] md:text-[72px] leading-tight text-center font-bold bg-gradient-to-b from-white from-50% to-[#838383] bg-clip-text text-transparent"
+		class="text-[36px] md:text-[72px] leading-tight text-center font-bold bg-gradient-to-b from-white from-50% to-[#838383] bg-clip-text text-transparent
+               transition-all duration-1000 ease-[cubic-bezier(0.23,1,0.32,1)]"
+		class:translate-y-5={!visible}
+		class:opacity-0={!visible}
+		class:translate-y-0={visible}
+		class:opacity-100={visible}
+		style="transition-delay: 100ms"
 	>
 		All your design inspiration.
 	</h1>
 	<h1
-		class="text-[36px] md:text-[72px] text-center leading-tight font-bold bg-gradient-to-b from-white from-50% to-[#838383] bg-clip-text text-transparent"
+		class="text-[36px] md:text-[72px] leading-tight text-center font-bold bg-gradient-to-b from-white from-50% to-[#838383] bg-clip-text text-transparent
+               transition-all duration-1000 ease-[cubic-bezier(0.23,1,0.32,1)]"
+		class:translate-y-5={!visible}
+		class:opacity-0={!visible}
+		class:translate-y-0={visible}
+		class:opacity-100={visible}
+		style="transition-delay: 100ms"
 	>
 		Finally organized.
 	</h1>
 </div>
 
 <h2
-	class="text-[#909090] text-[15px] md:text-[17px] mt-4 md:mt-6 max-w-[90%] md:max-w-[600px] text-center mx-auto relative z-10 px-4"
+	class="text-[#909090] text-[15px] md:text-[17px] mt-4 md:mt-6 max-w-[90%] md:max-w-[600px] text-center mx-auto relative z-10 px-4
+           transition-all duration-1000 ease-[cubic-bezier(0.23,1,0.32,1)]"
+	class:translate-y-5={!visible}
+	class:opacity-0={!visible}
+	class:translate-y-0={visible}
+	class:opacity-100={visible}
+	style="transition-delay: 200ms"
 >
 	Your design inspiration is scattered between Mobbin, X, Dribbble, etc. Kepler is the new way to
 	collect, organize, search and share your design files.
@@ -180,7 +205,13 @@
 
 <div
 	class="flex bg-[#212121] max-w-[90%] md:max-w-[420px] h-[56px] md:h-[60px] rounded-2xl mx-auto mt-16 md:mt-32 items-center
-           focus-within:ring-2 focus-within:ring-[#414141] focus-within:ring-offset-2 focus-within:ring-offset-black relative z-10"
+           focus-within:ring-2 focus-within:ring-[#414141] focus-within:ring-offset-2 focus-within:ring-offset-black relative z-10
+           transition-all duration-1000 ease-[cubic-bezier(0.23,1,0.32,1)]"
+	class:translate-y-5={!visible}
+	class:opacity-0={!visible}
+	class:translate-y-0={visible}
+	class:opacity-100={visible}
+	style="transition-delay: 300ms"
 >
 	<form class="flex md:flex-row w-full items-center pr-1" onsubmit={handleSubmit}>
 		<input
@@ -267,7 +298,13 @@
 	src="/main.png"
 	alt="Kepler app screen"
 	class="mt-8 md:mt-12 max-w-[90%] md:max-w-[1200px] mx-auto mb-16 md:mb-32 relative z-[30]
-border-solid border-[1px] border-[#242424] rounded-[12px] md:rounded-[20px] px-2 md:px-0"
+border-solid border-[1px] border-[#242424] rounded-[12px] md:rounded-[20px] px-2 md:px-0
+transition-all duration-1200 ease-[cubic-bezier(0.23,1,0.32,1)]"
+	class:translate-y-10={!visible}
+	class:opacity-0={!visible}
+	class:translate-y-0={visible}
+	class:opacity-100={visible}
+	style="transition-delay: 450ms"
 />
 
 <!-- Fireworks animation -->
