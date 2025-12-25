@@ -157,7 +157,8 @@
 	aria-hidden="true"
 />
 
-<div class="pt-20 md:pt-40 flex flex-col gap-0 relative z-10 px-4">
+<div class="pt-[60px] flex flex-col gap-0 relative z-10 px-4">
+	<img src="/logo.png" alt="App logo" class="w-[48px] mx-auto mb-[120px]" />
 	<h1
 		class="text-[36px] md:text-[72px] leading-tight text-center font-bold bg-gradient-to-b from-white from-50% to-[#838383] bg-clip-text text-transparent"
 	>
@@ -263,7 +264,7 @@
 </div>
 
 <img
-	src="/main2.png"
+	src="/main.png"
 	alt="Kepler app screen"
 	class="mt-8 md:mt-12 max-w-[90%] md:max-w-[1200px] mx-auto mb-16 md:mb-32 relative z-[30]
 border-solid border-[1px] border-[#242424] rounded-[12px] md:rounded-[20px] px-2 md:px-0"
